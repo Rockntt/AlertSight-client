@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fetch Accident Data</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .accident-info {
+            margin-bottom: 20px;
+        }
+        .accident-info p {
+            margin: 5px 0;
+        }
+        .accident-image {
+            max-width: 100%;
+            height: auto;
+            margin-top: 10px;
+        }
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Fetch Accident Data</h1>
+        <form id="fetchForm">
+            <label for="rowid">Enter Accident Row ID:</label>
+            <input type="number" id="rowid" name="rowid" required>
+            <button type="submit">Fetch Data</button>
+        </form>
+
+        <div id="result" class="accident-info">
+            <!-- данные -->
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('fetchForm').addEventListener('submit', async function (event) {
+            event.preventDefault();
+
+            const rowid = document.getElementById('rowid').value;
+            const resultDiv = document.getElementById('result');
+
+            resultDiv.innerHTML = '';
+
+            try {
+                const response = await fetch(`http://127.0.0.1:5000/fetch/${rowid}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                resultDiv.innerHTML = `
+                    <h2>Accident Details</h2>
+                    <p><strong>Row ID:</strong> ${data.rowid}</p>
+                    <p><strong>Type:</strong> ${data.type}</p>
+                    <p><strong>Source ID:</strong> ${data.source_id}</p>
+                    <p><strong>Date:</strong> ${data.date}</p>
+                    <img src="data:image/png;base64,${data.image}" alt="Accident Image" class="accident-image">
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html>
