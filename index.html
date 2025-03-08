@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fetch Accident Data</title>
+    <title>Last Event Monitor</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -31,35 +31,52 @@
 </head>
 <body>
     <div class="container">
-        <h1>Fetch Accident Data</h1>
-        <form id="fetchForm">
-            <label for="rowid">Enter Accident Row ID:</label>
-            <input type="number" id="rowid" name="rowid" required>
-            <button type="submit">Fetch Data</button>
-        </form>
-
+        <h1>Last Event Monitor</h1>
         <div id="result" class="accident-info">
-            <!-- данные -->
+            <!-- Здесь будут отображаться данные -->
         </div>
     </div>
 
     <script>
-        document.getElementById('fetchForm').addEventListener('submit', async function (event) {
-            event.preventDefault();
+        let lastEventId = null;  // Храним последний полученный ID
 
-            const rowid = document.getElementById('rowid').value;
+        // Функция для опроса /last_event
+        async function pollLastEvent() {
+            try {
+                // Опрашиваем /last_event
+                const lastEventResponse = await fetch('http://127.0.0.1:5000/last_event');
+                if (!lastEventResponse.ok) {
+                    throw new Error(`HTTP error! Status: ${lastEventResponse.status}`);
+                }
+
+                const lastEventData = await lastEventResponse.json();
+                const currentEventId = lastEventData.id;
+
+                // Если ID изменился, запрашиваем данные о происшествии
+                if (currentEventId !== lastEventId) {
+                    lastEventId = currentEventId;  // Обновляем последний ID
+                    fetchAccidentData(currentEventId);  // Запрашиваем данные о происшествии
+                }
+            } catch (error) {
+                console.error("Polling error:", error);
+            }
+        }
+
+        // Функция для запроса данных о происшествии
+        async function fetchAccidentData(rowid) {
             const resultDiv = document.getElementById('result');
 
-            resultDiv.innerHTML = '';
-
             try {
+                // Запрашиваем данные о происшествии
                 const response = await fetch(`http://127.0.0.1:5000/fetch/${rowid}`);
                 if (!response.ok) {
                     throw new Error(`HTTP error! Status: ${response.status}`);
                 }
 
                 const data = await response.json();
+                console.log("Accident data:", data);
 
+                // Отображаем данные
                 resultDiv.innerHTML = `
                     <h2>Accident Details</h2>
                     <p><strong>Row ID:</strong> ${data.rowid}</p>
@@ -69,9 +86,17 @@
                     <img src="data:image/png;base64,${data.image}" alt="Accident Image" class="accident-image">
                 `;
             } catch (error) {
+                console.error("Fetch error:", error);
                 resultDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
             }
-        });
+        }
+
+        // Опрашиваем /last_event каждые n миллисекунд
+        const pollingInterval = 3000;
+        setInterval(pollLastEvent, pollingInterval);
+
+        // Первый опрос при загрузке страницы
+        pollLastEvent();
     </script>
 </body>
 </html>
